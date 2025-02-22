@@ -9,6 +9,8 @@ See https://fnguy.com/phuzql_poc.html for more details.
 
 ## Features
 
+![PhuzQL Flowchart](assets/phuzql_flowchart.png)
+
 - Interactive query building with `fzf`
 - Integration with the Star Wars GraphQL API
 - Supports nested query structures
