@@ -7,26 +7,24 @@
    [com.wsscode.pathom3.connect.indexes :as pci]
    [org.httpkit.client :as http]))
 
-(defn request-thegraph-graphql
-  "Sends a GraphQL query to TheGraph API and returns the parsed response."
+(defn request-swapi-graphql
+  "Sends a GraphQL query to the Star Wars API and returns the parsed response."
   [query]
-  (let [api-key (System/getenv "THEGRAPH_API_KEY")
-        url (str "https://gateway.thegraph.com/api/" api-key "/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV")]
-    (-> @(http/request
-          {:url     url
-           :method  :post
-           :headers {"Content-Type" "application/json"
-                     "Accept"       "*/*"}
-           :body    (cjson/generate-string {:query query})})
-        :body
-        (cjson/parse-string))))
+  (-> @(http/request
+        {:url     "https://swapi-graphql.netlify.app/graphql"
+         :method  :post
+         :headers {"Content-Type" "application/json"
+                   "Accept"       "*/*"}
+         :body    (cjson/generate-string {:query query})})
+      :body
+      (cjson/parse-string)))
 
 (def env
-  "Creates the environment by connecting to TheGraph GraphQL API."
+  "Creates the environment by connecting to the Star Wars GraphQL API."
   (-> {}
       (p.gql/connect-graphql
-       {::p.gql/namespace "thegraph"}
-       request-thegraph-graphql)))
+       {::p.gql/namespace "swapi"}
+       request-swapi-graphql)))
 
 (def index-io (::pci/index-io env))
 
