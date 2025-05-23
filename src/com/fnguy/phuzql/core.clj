@@ -1,7 +1,7 @@
 (ns com.fnguy.phuzql.core
   (:require
    [com.fnguy.phuzql.swapi :as swapi]
-   [clojure.pprint :as pprint]
+   [clojure.pprint :as pprint :refer [pprint]]
    [fzf.core :refer [fzf]]))
 
 (defn nest-path
@@ -34,6 +34,23 @@
     (let [k (first path)]
       [{k (build-nested-from-path (rest path) leaves)}])))
 
+(defn- preview-fn
+  [partial selections]
+  (println "Selections: " selections)
+  (let [candidates (mapv read-string selections)
+        current-query (build-nested-from-path partial candidates)]
+    (binding [clojure.pprint/*print-right-margin* 80]
+      (try
+        (let [result (swapi/query swapi/env current-query)
+              result-str (with-out-str (pprint result))]
+          (str "Current Query:\n" (with-out-str (pprint current-query))
+               "\nQuery Result:\n"
+               result-str))
+        (catch Exception e
+          (str "Current Query:\n" (with-out-str (pprint current-query))
+               "\nQuery Result: Query not complete or error.\n"
+               (.getMessage e)))))))
+
 (defn build-branch
   "Recursively builds a query branch interactively.
   Uses fzf with an external preview command. Before invoking fzf,
@@ -47,19 +64,14 @@
     (if (empty? choices)
       nil
       (do
-        (spit "/tmp/phuzql_partial.txt" (pr-str partial))
         (println "\n--- Reachable choices ---")
         (doseq [c choices]
           (println (pr-str c)))
         (println "Multi-select one or more fields (or hit Enter to finish this branch):")
         (let [header-text (str "Current Query: " (with-out-str (pprint/pprint (transform-partial partial))))
-              ;; Use :preview so that fzf invokes the external command.
               opts {:multi true
                     :header {:header-str header-text}
-                    :preview (str "echo \"Current partial: \" $(cat /tmp/bb_phz_partial.txt); "
-                                  "./src/com/fnguy/phuzql/execute_query_preview.clj "
-                                  ;; fzf placeholder for sending all selected options to preview
-                                  "{+}")}
+                    :preview-fn #(preview-fn partial %1)}
               candidate-list (map pr-str choices)
               result (fzf opts candidate-list)
               selected-lines (if (string? result) [result] result)]
